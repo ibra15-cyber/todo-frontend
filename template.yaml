@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  ApiUrl:
+    Type: String
+    Description: Backend API URL
+
+Resources:
+  FrontendAmplify:
+    Type: AWS::Amplify::App
+    Properties:
+      Name: todo-app-frontend
+      Repository: https://github.com/yourusername/todo-app
+      AccessToken: "{{resolve:secretsmanager:github-token:SecretString:token}}"
+      BuildSpec: |
+        version: 1.0
+        frontend:
+          phases:
+            preBuild:
+              commands:
+                - cd frontend
+                - npm install
+            build:
+              commands:
+                - cd frontend
+                - npm run build
+          artifacts:
+            baseDirectory: frontend/dist
+            files:
+              - '**/*'
+      EnvironmentVariables:
+        - Name: VUE_APP_API_URL
+          Value: !Ref ApiUrl
