@@ -1,4 +1,4 @@
-// src/TaskDashboard.jsx - UPDATED WITH EDIT FUNCTIONALITY
+// src/TaskDashboard.jsx - IMPROVED READABILITY VERSION
 import React, { useState, useEffect, useCallback } from 'react';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { API_ENDPOINT } from './amplify-config.js';
@@ -25,12 +25,10 @@ const TaskDashboard = () => {
     }
   };
 
-  // Function to fetch all tasks using fetch API
+  // Function to fetch all tasks
   const fetchTasks = useCallback(async () => {
     setLoading(true);
     try {
-      console.log('Fetching tasks from API...');
-      
       const token = await getAuthToken();
       if (!token) {
         throw new Error('No authentication token available');
@@ -66,7 +64,6 @@ const TaskDashboard = () => {
   const handleEditTask = (task) => {
     setEditingTask(task.taskId);
     setEditDescription(task.description);
-    // Convert ISO deadline to datetime-local format
     const deadlineDate = new Date(task.deadline);
     const localDateTime = deadlineDate.toISOString().slice(0, 16);
     setEditDeadline(localDateTime);
@@ -75,8 +72,6 @@ const TaskDashboard = () => {
   // Handler for saving edited task
   const handleSaveEdit = async (taskId) => {
     try {
-      console.log('Saving edits for task:', taskId);
-      
       const token = await getAuthToken();
       const response = await fetch(`${API_ENDPOINT}/tasks/${taskId}`, {
         method: 'PUT',
@@ -94,11 +89,10 @@ const TaskDashboard = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      console.log('Task updated successfully');
       setEditingTask(null);
       setEditDescription('');
       setEditDeadline('');
-      fetchTasks(); // Refresh list
+      fetchTasks();
     } catch (error) {
       console.error('Error updating task:', error);
       alert('Failed to update task.');
@@ -115,8 +109,6 @@ const TaskDashboard = () => {
   // Handler for marking a task as Completed
   const handleUpdateTaskStatus = async (taskId, newStatus) => {
     try {
-      console.log('Updating task:', taskId, 'to status:', newStatus);
-      
       const token = await getAuthToken();
       const response = await fetch(`${API_ENDPOINT}/tasks/${taskId}`, {
         method: 'PUT',
@@ -131,8 +123,7 @@ const TaskDashboard = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      console.log('Task updated successfully');
-      fetchTasks(); // Refresh list
+      fetchTasks();
     } catch (error) {
       console.error('Error updating task:', error);
       alert('Failed to update task.');
@@ -144,8 +135,6 @@ const TaskDashboard = () => {
     if (!window.confirm("Are you sure you want to delete this task?")) return;
     
     try {
-      console.log('Deleting task:', taskId);
-      
       const token = await getAuthToken();
       const response = await fetch(`${API_ENDPOINT}/tasks/${taskId}`, {
         method: 'DELETE',
@@ -158,8 +147,7 @@ const TaskDashboard = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      console.log('Task deleted successfully');
-      fetchTasks(); // Refresh list
+      fetchTasks();
     } catch (error) {
       console.error('Error deleting task:', error);
       alert('Failed to delete task.');
@@ -168,115 +156,321 @@ const TaskDashboard = () => {
 
   const filteredTasks = Array.isArray(tasks) ? tasks.filter(task => task.status === filter) : [];
 
-  if (loading) return <p>Loading tasks...</p>;
+  // Get task counts for each status
+  const taskCounts = {
+    Pending: tasks.filter(t => t.status === 'Pending').length,
+    Completed: tasks.filter(t => t.status === 'Completed').length,
+    Expired: tasks.filter(t => t.status === 'Expired').length
+  };
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <p style={{ color: '#4b5563', fontSize: '1rem', fontWeight: '500' }}>
+          Loading your tasks...
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <CreateTaskForm onTaskCreated={fetchTasks} />
-
-      <h2 style={{marginTop: '30px'}}>Task List</h2>
-
-      {/* Status Filters */}
-      <div style={{ marginBottom: '20px' }}>
-        {StatusFilters.map(s => (
-          <button
-            key={s}
-            onClick={() => setFilter(s)}
-            style={{
-              marginRight: '10px',
-              padding: '8px 15px',
-              backgroundColor: filter === s ? '#007bff' : '#f0f0f0',
-              color: filter === s ? 'white' : 'black',
-              border: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            {s} ({Array.isArray(tasks) ? tasks.filter(t => t.status === s).length : 0})
-          </button>
-        ))}
+    <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+      {/* Stats Overview */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '16px',
+        marginBottom: '24px'
+      }}>
+        <div className="card" style={{ padding: '20px' }}>
+          <div style={{ fontSize: '2.25rem', fontWeight: '700', color: '#667eea', marginBottom: '4px' }}>
+            {tasks.length}
+          </div>
+          <div style={{ fontSize: '0.95rem', color: '#4b5563', fontWeight: '600' }}>
+            Total Tasks
+          </div>
+        </div>
+        <div className="card" style={{ padding: '20px' }}>
+          <div style={{ fontSize: '2.25rem', fontWeight: '700', color: '#f59e0b', marginBottom: '4px' }}>
+            {taskCounts.Pending}
+          </div>
+          <div style={{ fontSize: '0.95rem', color: '#4b5563', fontWeight: '600' }}>
+            Pending
+          </div>
+        </div>
+        <div className="card" style={{ padding: '20px' }}>
+          <div style={{ fontSize: '2.25rem', fontWeight: '700', color: '#10b981', marginBottom: '4px' }}>
+            {taskCounts.Completed}
+          </div>
+          <div style={{ fontSize: '0.95rem', color: '#4b5563', fontWeight: '600' }}>
+            Completed
+          </div>
+        </div>
       </div>
 
-      {filteredTasks.length === 0 ? (
-        <p>No {filter} tasks found.</p>
-      ) : (
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          {filteredTasks.map(task => (
-            <li key={task.taskId} style={{ border: '1px solid #ccc', padding: '15px', marginBottom: '10px', borderRadius: '5px' }}>
-              {editingTask === task.taskId ? (
-                // Edit Mode
-                <div>
-                  <div style={{ marginBottom: '10px' }}>
-                    <label htmlFor={`edit-desc-${task.taskId}`} style={{ display: 'block' }}>Description:</label>
-                    <input
-                      id={`edit-desc-${task.taskId}`}
-                      type="text"
-                      value={editDescription}
-                      onChange={(e) => setEditDescription(e.target.value)}
-                      style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                  <div style={{ marginBottom: '10px' }}>
-                    <label htmlFor={`edit-deadline-${task.taskId}`} style={{ display: 'block' }}>Deadline:</label>
-                    <input
-                      id={`edit-deadline-${task.taskId}`}
-                      type="datetime-local"
-                      value={editDeadline}
-                      onChange={(e) => setEditDeadline(e.target.value)}
-                      style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                  <div style={{ marginTop: '10px' }}>
-                    <button
-                      onClick={() => handleSaveEdit(task.taskId)}
-                      style={{ marginRight: '10px', backgroundColor: 'green', color: 'white', border: 'none', padding: '8px', cursor: 'pointer' }}
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={handleCancelEdit}
-                      style={{ backgroundColor: 'gray', color: 'white', border: 'none', padding: '8px', cursor: 'pointer' }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                // View Mode
-                <>
-                  <p><strong>Description:</strong> {task.description}</p>
-                  <p><strong>Deadline:</strong> {new Date(task.deadline).toLocaleString()}</p>
-                  <p><strong>Status:</strong> <span style={{ fontWeight: 'bold', color: task.status === 'Pending' ? 'orange' : task.status === 'Completed' ? 'green' : 'red' }}>{task.status}</span></p>
+      {/* Create Task Form */}
+      <div style={{ marginBottom: '24px' }} className="fade-in">
+        <CreateTaskForm onTaskCreated={fetchTasks} />
+      </div>
 
-                  <div style={{ marginTop: '10px' }}>
-                    {task.status === 'Pending' && (
-                      <>
+      {/* Task List Section */}
+      <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+        <div style={{
+          background: 'linear-gradient(to bottom, #f9fafb, white)',
+          borderBottom: '1px solid #e5e7eb',
+          padding: '20px 24px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h2 style={{ 
+                margin: 0, 
+                color: '#111827',
+                fontSize: '1.5rem',
+                fontWeight: '700'
+              }}>
+                Your Tasks
+              </h2>
+              <p style={{ 
+                margin: '4px 0 0 0', 
+                color: '#6b7280',
+                fontSize: '0.95rem'
+              }}>
+                Manage your task list
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Status Filters */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '12px', 
+          padding: '20px 24px',
+          borderBottom: '1px solid #e5e7eb',
+          flexWrap: 'wrap',
+          background: 'white'
+        }}>
+          {StatusFilters.map(s => {
+            const count = taskCounts[s];
+            const isActive = filter === s;
+            
+            return (
+              <button
+                key={s}
+                onClick={() => setFilter(s)}
+                className="btn"
+                style={{
+                  padding: '10px 20px',
+                  background: isActive 
+                    ? 'linear-gradient(135deg, #667eea, #764ba2)' 
+                    : '#f3f4f6',
+                  color: isActive ? 'white' : '#1f2937',
+                  fontSize: '0.95rem',
+                  boxShadow: isActive ? '0 2px 8px rgba(102, 126, 234, 0.3)' : 'none'
+                }}
+              >
+                {s}
+                <span style={{
+                  padding: '3px 9px',
+                  borderRadius: '6px',
+                  background: isActive 
+                    ? 'rgba(255, 255, 255, 0.25)' 
+                    : '#d1d5db',
+                  fontSize: '0.85rem',
+                  fontWeight: '700',
+                  color: isActive ? 'white' : '#1f2937'
+                }}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Task List */}
+        <div style={{ padding: '24px' }}>
+          {filteredTasks.length === 0 ? (
+            <div className="empty-state">
+              <div style={{ 
+                fontSize: '3.5rem',
+                marginBottom: '16px',
+                opacity: 0.4
+              }}>
+                {filter === 'Pending' ? '📝' : filter === 'Completed' ? '✅' : '⏰'}
+              </div>
+              <h3>No {filter.toLowerCase()} tasks</h3>
+              <p>
+                {filter === 'Pending' 
+                  ? 'Create your first task to get started!' 
+                  : filter === 'Completed'
+                  ? 'Complete some tasks to see them here'
+                  : 'No expired tasks - great job!'}
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {filteredTasks.map((task, index) => (
+                <div 
+                  key={task.taskId} 
+                  className="card fade-in" 
+                  style={{ 
+                    padding: '24px',
+                    animationDelay: `${index * 0.05}s`,
+                    border: editingTask === task.taskId ? '2px solid #667eea' : undefined
+                  }}
+                >
+                  {editingTask === task.taskId ? (
+                    // Edit Mode
+                    <div>
+                      <div style={{ marginBottom: '16px' }}>
+                        <label style={{ 
+                          display: 'block', 
+                          marginBottom: '8px',
+                          fontWeight: '600',
+                          color: '#1f2937',
+                          fontSize: '0.95rem'
+                        }}>
+                          Description
+                        </label>
+                        <input
+                          type="text"
+                          value={editDescription}
+                          onChange={(e) => setEditDescription(e.target.value)}
+                          className="input-modern"
+                          placeholder="Enter task description..."
+                        />
+                      </div>
+                      <div style={{ marginBottom: '20px' }}>
+                        <label style={{ 
+                          display: 'block', 
+                          marginBottom: '8px',
+                          fontWeight: '600',
+                          color: '#1f2937',
+                          fontSize: '0.95rem'
+                        }}>
+                          Deadline
+                        </label>
+                        <input
+                          type="datetime-local"
+                          value={editDeadline}
+                          onChange={(e) => setEditDeadline(e.target.value)}
+                          className="input-modern"
+                        />
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px' }}>
                         <button
-                          onClick={() => handleUpdateTaskStatus(task.taskId, 'Completed')}
-                          style={{ marginRight: '10px', backgroundColor: 'green', color: 'white', border: 'none', padding: '8px', cursor: 'pointer' }}
+                          onClick={() => handleSaveEdit(task.taskId)}
+                          className="btn btn-success"
                         >
-                          Mark Completed
+                          💾 Save Changes
                         </button>
                         <button
-                          onClick={() => handleEditTask(task)}
-                          style={{ marginRight: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', padding: '8px', cursor: 'pointer' }}
+                          onClick={handleCancelEdit}
+                          className="btn btn-secondary"
                         >
-                          Edit
+                          ✕ Cancel
                         </button>
-                      </>
-                    )}
-                    <button
-                      onClick={() => handleDeleteTask(task.taskId)}
-                      style={{ backgroundColor: 'red', color: 'white', border: 'none', padding: '8px', cursor: 'pointer' }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+                      </div>
+                    </div>
+                  ) : (
+                    // View Mode
+                    <>
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'flex-start', 
+                        marginBottom: '16px',
+                        gap: '16px'
+                      }}>
+                        <div style={{ flex: 1 }}>
+                          <h3 style={{ 
+                            margin: '0 0 12px 0', 
+                            color: '#111827',
+                            fontSize: '1.125rem',
+                            fontWeight: '600',
+                            lineHeight: '1.5'
+                          }}>
+                            {task.description}
+                          </h3>
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '16px', 
+                            flexWrap: 'wrap' 
+                          }}>
+                            <div style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '8px',
+                              padding: '6px 12px',
+                              background: '#f9fafb',
+                              borderRadius: '8px',
+                              border: '1px solid #e5e7eb'
+                            }}>
+                              <span style={{ fontSize: '1rem' }}>📅</span>
+                              <span style={{ 
+                                color: '#1f2937', 
+                                fontSize: '0.95rem',
+                                fontWeight: '500'
+                              }}>
+                                {new Date(task.deadline).toLocaleString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            </div>
+                            <span className={`status-badge status-${task.status.toLowerCase()}`}>
+                              {task.status}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ 
+                        display: 'flex', 
+                        gap: '10px', 
+                        flexWrap: 'wrap',
+                        paddingTop: '16px',
+                        borderTop: '1px solid #e5e7eb'
+                      }}>
+                        {task.status === 'Pending' && (
+                          <>
+                            <button
+                              onClick={() => handleUpdateTaskStatus(task.taskId, 'Completed')}
+                              className="btn btn-success"
+                              style={{ fontSize: '0.95rem' }}
+                            >
+                              ✓ Complete
+                            </button>
+                            <button
+                              onClick={() => handleEditTask(task)}
+                              className="btn btn-primary"
+                              style={{ fontSize: '0.95rem' }}
+                            >
+                              ✏️ Edit
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => handleDeleteTask(task.taskId)}
+                          className="btn btn-danger"
+                          style={{ fontSize: '0.95rem' }}
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
