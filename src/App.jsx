@@ -9,7 +9,6 @@ import awsExports from './amplify-config.js';
 // Add error handling for Amplify configuration
 try {
     Amplify.configure(awsExports);
-    console.log('Amplify configured successfully');
 } catch (error) {
     console.error('Error configuring Amplify:', error);
 }
@@ -21,12 +20,10 @@ export default function App() {
             loginMechanisms={['email']}
         >
             {({ signOut, user }) => {
-                // Debug: Log the user object to see its structure
-                console.log('User object:', user);
 
                 // Extract email safely
                 const userEmail = user?.attributes?.email ||
-                    user?.signInDetails?.loginId ||
+                    user?.signInDetails?.loginId ||UpdateTaskForm
                     user?.username ||
                     'User';
 

@@ -1,4 +1,4 @@
-// src/TaskDashboard.jsx - UPDATED WITH FETCH
+// src/TaskDashboard.jsx - UPDATED WITH EDIT FUNCTIONALITY
 import React, { useState, useEffect, useCallback } from 'react';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { API_ENDPOINT } from './amplify-config.js';
@@ -10,6 +10,9 @@ const TaskDashboard = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('Pending');
+  const [editingTask, setEditingTask] = useState(null);
+  const [editDescription, setEditDescription] = useState('');
+  const [editDeadline, setEditDeadline] = useState('');
 
   // Function to get authentication token
   const getAuthToken = async () => {
@@ -46,7 +49,6 @@ const TaskDashboard = () => {
       }
 
       const tasksData = await response.json();
-      console.log('Tasks fetched successfully:', tasksData);
       setTasks(Array.isArray(tasksData) ? tasksData : []);
     } catch (error) {
       console.error('Error fetching tasks:', error);
@@ -60,8 +62,58 @@ const TaskDashboard = () => {
     fetchTasks();
   }, [fetchTasks]);
 
+  // Handler for editing a task
+  const handleEditTask = (task) => {
+    setEditingTask(task.taskId);
+    setEditDescription(task.description);
+    // Convert ISO deadline to datetime-local format
+    const deadlineDate = new Date(task.deadline);
+    const localDateTime = deadlineDate.toISOString().slice(0, 16);
+    setEditDeadline(localDateTime);
+  };
+
+  // Handler for saving edited task
+  const handleSaveEdit = async (taskId) => {
+    try {
+      console.log('Saving edits for task:', taskId);
+      
+      const token = await getAuthToken();
+      const response = await fetch(`${API_ENDPOINT}/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          description: editDescription,
+          deadline: new Date(editDeadline).toISOString()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      console.log('Task updated successfully');
+      setEditingTask(null);
+      setEditDescription('');
+      setEditDeadline('');
+      fetchTasks(); // Refresh list
+    } catch (error) {
+      console.error('Error updating task:', error);
+      alert('Failed to update task.');
+    }
+  };
+
+  // Handler for canceling edit
+  const handleCancelEdit = () => {
+    setEditingTask(null);
+    setEditDescription('');
+    setEditDeadline('');
+  };
+
   // Handler for marking a task as Completed
-  const handleUpdateTask = async (taskId, newStatus) => {
+  const handleUpdateTaskStatus = async (taskId, newStatus) => {
     try {
       console.log('Updating task:', taskId, 'to status:', newStatus);
       
@@ -150,28 +202,77 @@ const TaskDashboard = () => {
         <ul style={{ listStyle: 'none', padding: 0 }}>
           {filteredTasks.map(task => (
             <li key={task.taskId} style={{ border: '1px solid #ccc', padding: '15px', marginBottom: '10px', borderRadius: '5px' }}>
-              <p><strong>Description:</strong> {task.description}</p>
-              <p><strong>Deadline:</strong> {new Date(task.deadline).toLocaleString()}</p>
-              <p><strong>Status:</strong> <span style={{ fontWeight: 'bold', color: task.status === 'Pending' ? 'orange' : task.status === 'Completed' ? 'green' : 'red' }}>{task.status}</span></p>
-
-              <div style={{ marginTop: '10px' }}>
-                {task.status === 'Pending' && (
-                  <>
+              {editingTask === task.taskId ? (
+                // Edit Mode
+                <div>
+                  <div style={{ marginBottom: '10px' }}>
+                    <label htmlFor={`edit-desc-${task.taskId}`} style={{ display: 'block' }}>Description:</label>
+                    <input
+                      id={`edit-desc-${task.taskId}`}
+                      type="text"
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: '10px' }}>
+                    <label htmlFor={`edit-deadline-${task.taskId}`} style={{ display: 'block' }}>Deadline:</label>
+                    <input
+                      id={`edit-deadline-${task.taskId}`}
+                      type="datetime-local"
+                      value={editDeadline}
+                      onChange={(e) => setEditDeadline(e.target.value)}
+                      style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div style={{ marginTop: '10px' }}>
                     <button
-                      onClick={() => handleUpdateTask(task.taskId, 'Completed')}
+                      onClick={() => handleSaveEdit(task.taskId)}
                       style={{ marginRight: '10px', backgroundColor: 'green', color: 'white', border: 'none', padding: '8px', cursor: 'pointer' }}
                     >
-                      Mark Completed
+                      Save
                     </button>
-                  </>
-                )}
-                <button
-                  onClick={() => handleDeleteTask(task.taskId)}
-                  style={{ backgroundColor: 'red', color: 'white', border: 'none', padding: '8px', cursor: 'pointer' }}
-                >
-                  Delete
-                </button>
-              </div>
+                    <button
+                      onClick={handleCancelEdit}
+                      style={{ backgroundColor: 'gray', color: 'white', border: 'none', padding: '8px', cursor: 'pointer' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                // View Mode
+                <>
+                  <p><strong>Description:</strong> {task.description}</p>
+                  <p><strong>Deadline:</strong> {new Date(task.deadline).toLocaleString()}</p>
+                  <p><strong>Status:</strong> <span style={{ fontWeight: 'bold', color: task.status === 'Pending' ? 'orange' : task.status === 'Completed' ? 'green' : 'red' }}>{task.status}</span></p>
+
+                  <div style={{ marginTop: '10px' }}>
+                    {task.status === 'Pending' && (
+                      <>
+                        <button
+                          onClick={() => handleUpdateTaskStatus(task.taskId, 'Completed')}
+                          style={{ marginRight: '10px', backgroundColor: 'green', color: 'white', border: 'none', padding: '8px', cursor: 'pointer' }}
+                        >
+                          Mark Completed
+                        </button>
+                        <button
+                          onClick={() => handleEditTask(task)}
+                          style={{ marginRight: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', padding: '8px', cursor: 'pointer' }}
+                        >
+                          Edit
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => handleDeleteTask(task.taskId)}
+                      style={{ backgroundColor: 'red', color: 'white', border: 'none', padding: '8px', cursor: 'pointer' }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </>
+              )}
             </li>
           ))}
         </ul>

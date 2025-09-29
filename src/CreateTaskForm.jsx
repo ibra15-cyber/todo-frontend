@@ -41,7 +41,6 @@ const CreateTaskForm = ({ onTaskCreated }) => {
     const deadlineISO = new Date(deadline).toISOString();
 
     try {
-      console.log('Creating task with:', { description, deadline: deadlineISO });
       
       const token = await getAuthToken();
       if (!token) {
@@ -62,7 +61,6 @@ const CreateTaskForm = ({ onTaskCreated }) => {
       }
 
       const result = await response.json();
-      console.log('Task created successfully:', result);
       alert('Task created successfully!');
       setDescription('');
       setDeadline(getDefaultDeadline());
