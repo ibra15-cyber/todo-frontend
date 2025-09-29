@@ -227,7 +227,7 @@ const CreateTaskForm = ({ onTaskCreated }) => {
           }}>
             Task Description *
           </label>
-          <input
+          <textarea
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}

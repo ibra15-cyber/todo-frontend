@@ -184,7 +184,7 @@ const TaskDashboard = () => {
         marginBottom: '24px'
       }}>
         <div className="card" style={{ padding: '20px' }}>
-          <div style={{ fontSize: '2.25rem', fontWeight: '700', color: '#fbfbfdff', marginBottom: '4px' }}>
+          <div style={{ fontSize: '2.25rem', fontWeight: '700', color: '#6f6ff3ff', marginBottom: '4px' }}>
             {tasks.length}
           </div>
           <div style={{ fontSize: '0.95rem', color: '#4b5563', fontWeight: '600' }}>
