@@ -1,15 +1,15 @@
 // src/amplify-config.js
 const amplifyConfig = {
-    Auth: {
-        Cognito: {
-            userPoolId: 'eu-west-1_ChvVUBEdk',
-            userPoolClientId: '6a1s7p2mu4bchunanqilpson3l',
-            identityPoolId: 'eu-west-1:57a5e16a-8d11-4ff1-b75f-b670663b80d6',
-        }
+  Auth: {
+    Cognito: {
+      userPoolId: import.meta.env.VITE_USER_POOL_ID,
+      userPoolClientId: import.meta.env.VITE_USER_POOL_CLIENT_ID,
+      identityPoolId: import.meta.env.VITE_IDENTITY_POOL_ID,
     }
+  }
 };
 
 export default amplifyConfig;
 
-// Remove the ApiName export and use the endpoint directly
-export const API_ENDPOINT = 'https://ck5qu0275c.execute-api.eu-west-1.amazonaws.com/Prod';
+// Use environment variable for API endpoint with fallback
+export const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT 
